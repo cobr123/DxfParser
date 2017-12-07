@@ -59,11 +59,12 @@ class DxfParser extends DebugDxfParser {
     ZERO
       | EOF
       | ENDSEC
+      | ENDTAB
     )
 
   lazy val group_code: Parser[Any] = "group_code" !!! not(keywords) ~ """\d+""".r //not(keywords) ~> wholeNumber
 
-  lazy val value: Parser[Any] = "value" !!! not(keywords) ~ """[^\r\n]+""".r //"""[А-Яа-яA-Za-z0-9_\-+\.\\\*\h;:'/"=#№()]+""".r
+  lazy val value: Parser[Any] = "value" !!! """[^{}\r\n]+""".r //"""[А-Яа-яA-Za-z0-9_\-+\.\\\*\h;:'/"=#№()]+""".r
 
   lazy val NL: Parser[Any] = """(\r?\n)""".r
 

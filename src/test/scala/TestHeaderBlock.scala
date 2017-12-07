@@ -1,5 +1,5 @@
 
-class TestHeader extends TestUtil {
+class TestHeaderBlock extends TestUtil {
   test("section with header only") {
     val text =
       """  0
