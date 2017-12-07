@@ -1,6 +1,6 @@
 
 class TestEntitiesBlock extends TestUtil {
-  test("section with header only") {
+  test("section with entities only") {
     val text =
       """  0
         |SECTION

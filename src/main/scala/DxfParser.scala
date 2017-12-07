@@ -97,6 +97,10 @@ class DxfParser extends DebugDxfParser {
 
   lazy val ENTITIES: Parser[Any] = ignoreCase("ENTITIES")
 
+  lazy val OBJECTS: Parser[Any] = ignoreCase("OBJECTS")
+
+  lazy val DICTIONARY: Parser[Any] = ignoreCase("DICTIONARY")
+
   lazy val EOF: Parser[Any] = ignoreCase("EOF")
 
   lazy val AcDbBlockEnd: Parser[Any] = ignoreCase("AcDbBlockEnd")
@@ -115,6 +119,7 @@ class DxfParser extends DebugDxfParser {
       ~ opt(tables_block)
       ~ opt(blocks_block)
       ~ opt(entities_block)
+      ~ opt(objects_block)
     )
 
   /*Applications can retrieve the values of these variables with the AutoLISP getvar function.
@@ -368,6 +373,55 @@ class DxfParser extends DebugDxfParser {
     )
       ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
     )
+  /*The following is an example of the OBJECTS section of a DXF file:
+    0
+  SECTION
+    2
+  OBJECTS
+
+  Beginning of OBJECTS section
+    0
+  DICTIONARY
+    5
+  <handle>
+  100
+  AcDbDictionary
+
+  Beginning of named object
+  dictionary (root dictionary
+  object)
+
+    3
+  <dictionary name>
+  350
+  <handle of child>
+
+  Repeats for each entry
+    0
+  <object type>
+  .
+  . <data>
+  .
+  Groups of object data
+
+    0
+  ENDSEC
+  End of OBJECTS section
+  * */
+  lazy val objects_block: Parser[Any] = "objects_block" !!! (
+    (WS ~ ZERO ~ NL ~ SECTION ~ NL)
+      ~ (WS ~ "2" ~ NL ~ OBJECTS ~ NL)
+      ~ rep(
+      (WS ~ ZERO ~ NL ~ DICTIONARY ~ NL)
+        ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | value) ~ NL)
+        ~ rep(
+        (WS ~ ZERO ~ NL ~ object_type ~ NL)
+          ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | value) ~ NL)
+      )
+    )
+    )
+
+  lazy val object_type: Parser[Any] = "object_type" !!! not(keywords) ~"""[a-zA-Z0-9_]+""".r
 
 
   def parseByRule(rule: Parser[Any], text: String) = {
