@@ -466,11 +466,13 @@ class DxfParser extends DebugDxfParser {
   lazy val object_type: Parser[Any] = "object_type" !!! not(keywords) ~"""[a-zA-Z0-9_]+""".r
 
   lazy val thumbnailimage_block: Parser[Any] = "thumbnailimage_block" !!! (
-    (WS ~ ZERO ~ NL ~ SECTION ~ NL)
-      ~ (WS ~ "2" ~ NL ~ THUMBNAILIMAGE ~ NL)
-      ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | value) ~ NL)
-      ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
-    )
+    ((WS ~ ZERO ~ NL ~ SECTION ~ NL)
+      ~ (WS ~ "2" ~ NL ~ THUMBNAILIMAGE ~ NL))
+      ~> rep(group_code_and_value)
+      <~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
+    ) ^^ {
+    case v => new DxfThumbnailImage(context, v)
+  }
 
   def parseByRule(rule: Parser[Any], text: String) = {
     parseAll(rule,

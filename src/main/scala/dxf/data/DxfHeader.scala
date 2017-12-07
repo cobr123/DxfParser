@@ -3,7 +3,7 @@ package dxf.data
 final class DxfHeader(ctx: dxf.parser.Context, variables: List[DxfHeaderVariable]) {
   override def toString: String = {
     if (ctx.printToXml) {
-      var res = "<SECTION name='header'>" + "\n"
+      var res = "<SECTION name='HEADER'>" + "\n"
       res += "<VARIABLES>" + "\n"
       res += variables.mkString
       res += "</VARIABLES>" + "\n"
