@@ -101,6 +101,8 @@ class DxfParser extends DebugDxfParser {
 
   lazy val DICTIONARY: Parser[Any] = ignoreCase("DICTIONARY")
 
+  lazy val THUMBNAILIMAGE: Parser[Any] = ignoreCase("THUMBNAILIMAGE")
+
   lazy val EOF: Parser[Any] = ignoreCase("EOF")
 
   lazy val AcDbBlockEnd: Parser[Any] = ignoreCase("AcDbBlockEnd")
@@ -120,6 +122,7 @@ class DxfParser extends DebugDxfParser {
       ~ opt(blocks_block)
       ~ opt(entities_block)
       ~ opt(objects_block)
+      ~ opt(thumbnailimage_block)
     )
 
   /*Applications can retrieve the values of these variables with the AutoLISP getvar function.
@@ -424,6 +427,12 @@ class DxfParser extends DebugDxfParser {
 
   lazy val object_type: Parser[Any] = "object_type" !!! not(keywords) ~"""[a-zA-Z0-9_]+""".r
 
+  lazy val thumbnailimage_block: Parser[Any] = "thumbnailimage_block" !!! (
+    (WS ~ ZERO ~ NL ~ SECTION ~ NL)
+      ~ (WS ~ "2" ~ NL ~ THUMBNAILIMAGE ~ NL)
+      ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | value) ~ NL)
+      ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
+    )
 
   def parseByRule(rule: Parser[Any], text: String) = {
     parseAll(rule,
