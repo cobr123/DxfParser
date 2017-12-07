@@ -1,7 +1,7 @@
 package dxf.parser
 
 import dxf.data._
-import dxf.data.section.{DxfHeader, DxfTables, DxfThumbnailImage}
+import dxf.data.section.{DxfEntities, DxfHeader, DxfTables, DxfThumbnailImage}
 
 import scala.util.parsing.combinator.{JavaTokenParsers, PackratParsers}
 
@@ -290,17 +290,17 @@ class DxfParser extends DebugDxfParser {
   lazy val dxf_table: Parser[DxfTable] = "dxf_table" !!! (
     ((WS ~ ZERO ~ NL ~ TABLE ~ NL)
       ~> rep(group_code_and_dict))
-      ~ (rep(dxf_table_type)
+      ~ (rep(dxf_type_with_groups)
       <~ (WS ~ ZERO ~ NL ~ ENDTAB ~ NL))
     ) ^^ {
     case g ~ t => new DxfTable(context, g, t)
   }
 
-  lazy val dxf_table_type: Parser[DxfTableType] = "dxf_table_type" !!! (
-    (WS ~> ZERO ~> NL ~> table_type <~ NL)
+  lazy val dxf_type_with_groups: Parser[DxfTypeWithGroups] = "dxf_table_type" !!! (
+    (WS ~> ZERO ~> NL ~> groups_type <~ NL)
       ~ rep(group_code_and_dict)
     ) ^^ {
-    case n ~ g => new DxfTableType(context, n, g)
+    case n ~ g => new DxfTypeWithGroups(context, n, g)
   }
 
   lazy val group_code_and_dict: Parser[DxfGroupCodeAndDict] = "group_code_and_dict" !!! (
@@ -310,7 +310,7 @@ class DxfParser extends DebugDxfParser {
     case n ~ v => new DxfGroupCodeAndDict(context, n, v)
   }
 
-  lazy val table_type: Parser[String] = not(keywords) ~> """[a-zA-Z0-9_]+""".r
+  lazy val groups_type: Parser[String] = not(keywords) ~> """[a-zA-Z0-9_]+""".r
 
   lazy val handle: Parser[String] = not(keywords) ~> """[a-zA-Z0-9]+""".r
 
@@ -427,14 +427,13 @@ class DxfParser extends DebugDxfParser {
   End of ENTITIES section
   * */
   lazy val entities_block: Parser[Any] = "entities_block" !!! (
-    (WS ~ ZERO ~ NL ~ SECTION ~ NL)
-      ~ (WS ~ TWO ~ NL ~ ENTITIES ~ NL)
-      ~ rep(
-      (WS ~ ZERO ~ NL ~ entity_type ~ NL)
-        ~ rep(group_code_and_dict)
-    )
-      ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
-    )
+    (WS ~ ZERO ~ NL ~ SECTION ~ NL
+      ~ WS ~ TWO ~ NL ~ ENTITIES ~ NL)
+      ~> rep(dxf_type_with_groups)
+      <~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
+    ) ^^ {
+    case v => new DxfEntities(context, v)
+  }
   /*The following is an example of the OBJECTS section of a DXF file:
     0
   SECTION

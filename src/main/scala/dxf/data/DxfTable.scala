@@ -1,7 +1,7 @@
 package dxf.data
 
 
-final class DxfTable(ctx: dxf.parser.Context, groups: List[DxfGroupCodeAndDict], types: List[DxfTableType]) {
+final class DxfTable(ctx: dxf.parser.Context, groups: List[DxfGroupCodeAndDict], types: List[DxfTypeWithGroups]) {
   override def toString: String = {
     if (ctx.printToXml) {
       var res = "<TABLE>" + "\n"
