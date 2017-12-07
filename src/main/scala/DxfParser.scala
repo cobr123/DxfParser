@@ -95,6 +95,8 @@ class DxfParser extends DebugDxfParser {
 
   lazy val ENDBLK: Parser[Any] = ignoreCase("ENDBLK")
 
+  lazy val ENTITIES: Parser[Any] = ignoreCase("ENTITIES")
+
   lazy val EOF: Parser[Any] = ignoreCase("EOF")
 
   lazy val AcDbBlockEnd: Parser[Any] = ignoreCase("AcDbBlockEnd")
@@ -112,6 +114,7 @@ class DxfParser extends DebugDxfParser {
       ~ opt(classes_block)
       ~ opt(tables_block)
       ~ opt(blocks_block)
+      ~ opt(entities_block)
     )
 
   /*Applications can retrieve the values of these variables with the AutoLISP getvar function.
@@ -327,6 +330,45 @@ class DxfParser extends DebugDxfParser {
     )
 
   lazy val entity_type: Parser[Any] = "entity_type" !!! not(keywords) ~"""[a-zA-Z0-9_]+""".r
+
+  /*The following is an example of the ENTITIES section of a DXF file:
+    0
+  SECTION
+    2
+  ENTITIES
+
+  Beginning of ENTITIES section
+    0
+  <entity type>
+    5
+  <handle>
+  330
+  <pointer to owner>
+  100
+  AcDbEntity
+    8
+  <layer>
+  100
+  AcDb<classname>
+  .
+  . <data>
+  .
+  One entry for each entity definition
+
+    0
+  ENDSEC
+  End of ENTITIES section
+  * */
+  lazy val entities_block: Parser[Any] = "entities_block" !!! (
+    (WS ~ ZERO ~ NL ~ SECTION ~ NL)
+      ~ (WS ~ "2" ~ NL ~ ENTITIES ~ NL)
+      ~ rep(
+      (WS ~ ZERO ~ NL ~ entity_type ~ NL)
+        ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | value) ~ NL)
+    )
+      ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
+    )
+
 
   def parseByRule(rule: Parser[Any], text: String) = {
     parseAll(rule,
