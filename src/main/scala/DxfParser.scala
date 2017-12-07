@@ -60,6 +60,7 @@ class DxfParser extends DebugDxfParser {
       | EOF
       | ENDSEC
       | ENDTAB
+      | ENDBLK
     )
 
   lazy val group_code: Parser[Any] = "group_code" !!! not(keywords) ~ """\d+""".r //not(keywords) ~> wholeNumber
@@ -88,7 +89,15 @@ class DxfParser extends DebugDxfParser {
 
   lazy val ENDTAB: Parser[Any] = ignoreCase("ENDTAB")
 
+  lazy val BLOCKS: Parser[Any] = ignoreCase("BLOCKS")
+
+  lazy val BLOCK: Parser[Any] = ignoreCase("BLOCK")
+
+  lazy val ENDBLK: Parser[Any] = ignoreCase("ENDBLK")
+
   lazy val EOF: Parser[Any] = ignoreCase("EOF")
+
+  lazy val AcDbBlockEnd: Parser[Any] = ignoreCase("AcDbBlockEnd")
 
   /*
   https://www.autodesk.com/techpubs/autocad/acad2000/dxf/ascii_dxf_files_dxf_aa.htm
@@ -102,6 +111,7 @@ class DxfParser extends DebugDxfParser {
     opt(header_block)
       ~ opt(classes_block)
       ~ opt(tables_block)
+      ~ opt(blocks_block)
     )
 
   /*Applications can retrieve the values of these variables with the AutoLISP getvar function.
@@ -243,6 +253,80 @@ class DxfParser extends DebugDxfParser {
       ~ WS ~ group_code ~ NL
       ~ "}"
     )
+  /*The following is an example of the BLOCKS section of a DXF file:
+    0
+  SECTION
+    2
+  BLOCKS
+
+  Beginning of BLOCKS section
+    0
+  BLOCK
+    5
+  <handle>
+  100
+  AcDbEntity
+    8
+  <layer>
+  100
+  AcDbBlockBegin
+    2
+  <block name>
+  70
+  <flag>
+  10
+  <X value>
+  20
+  <Y value>
+  30
+  <Z value>
+    3
+  <block name>
+    1
+  <xref path>
+
+  Begins each block entry
+  (a block entity definition)
+
+    0
+  <entity type>
+  .
+  . <data>
+  .
+
+  One entry for each entity definition within the block
+
+    0
+  ENDBLK
+    5
+  <handle>
+  100
+  AcDbBlockEnd
+  End of each block entry
+  (an endblk entity definition)
+
+    0
+  ENDSEC
+  End of BLOCKS section
+  * */
+  lazy val blocks_block: Parser[Any] = "blocks_block" !!! (
+    (WS ~ ZERO ~ NL ~ SECTION ~ NL)
+      ~ (WS ~ "2" ~ NL ~ BLOCKS ~ NL)
+      ~ rep(
+      (WS ~ ZERO ~ NL ~ BLOCK ~ NL)
+        ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | value) ~ NL)
+        ~ rep(
+        (WS ~ ZERO ~ NL ~ entity_type ~ NL)
+          ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | value) ~ NL)
+      )
+        ~ (WS ~ ZERO ~ NL ~ ENDBLK ~ NL)
+        ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | not(AcDbBlockEnd) ~ value) ~ NL)
+        ~ (WS ~ "100" ~ NL ~ AcDbBlockEnd ~NL)
+    )
+      ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
+    )
+
+  lazy val entity_type: Parser[Any] = "entity_type" !!! not(keywords) ~"""[a-zA-Z0-9_]+""".r
 
   def parseByRule(rule: Parser[Any], text: String) = {
     parseAll(rule,
