@@ -236,11 +236,11 @@ class DxfParser extends DebugDxfParser {
     case g ~ t => new DxfClass(context, g, t)
   }
 
-  lazy val class_dxf_record: Parser[Any] = not(keywords) ~"""[a-zA-Z0-9]+""".r
+  //  lazy val class_dxf_record: Parser[Any] = not(keywords) ~"""[a-zA-Z0-9]+""".r
 
-  lazy val class_name: Parser[Any] = not(keywords) ~"""[a-zA-Z0-9]+""".r
+  //  lazy val class_name: Parser[Any] = not(keywords) ~"""[a-zA-Z0-9]+""".r
 
-  lazy val app_name: Parser[Any] = not(keywords) ~"""[a-zA-Z0-9_\h]+""".r
+  //  lazy val app_name: Parser[Any] = not(keywords) ~"""[a-zA-Z0-9_\h]+""".r
 
   /*The following is an example of the TABLES section of a DXF file.
     0
@@ -316,7 +316,7 @@ class DxfParser extends DebugDxfParser {
 
   lazy val groups_type: Parser[String] = not(keywords) ~> """[a-zA-Z0-9_]+""".r
 
-  lazy val handle: Parser[String] = not(keywords) ~> """[a-zA-Z0-9]+""".r
+  //  lazy val handle: Parser[String] = not(keywords) ~> """[a-zA-Z0-9]+""".r
 
   lazy val dict_name: Parser[String] = not(keywords) ~> """[a-zA-Z0-9_]+""".r
 
@@ -383,19 +383,24 @@ class DxfParser extends DebugDxfParser {
   ENDSEC
   End of BLOCKS section
   * */
-  lazy val blocks_block: Parser[Any] = "blocks_block" !!! (
-    (WS ~ ZERO ~ NL ~ SECTION ~ NL)
-      ~ (WS ~ TWO ~ NL ~ BLOCKS ~ NL)
-      ~ rep(
-      (WS ~ ZERO ~ NL ~ BLOCK ~ NL)
-        ~ rep(group_code_and_dict)
+  lazy val blocks_block: Parser[DxfBlocks] = "blocks_block" !!! (
+    (WS ~ ZERO ~ NL ~ SECTION ~ NL
+      ~ WS ~ TWO ~ NL ~ BLOCKS ~ NL)
+      ~> rep(dxf_block)
+      <~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
+    ) ^^ {
+    case v => new DxfBlocks(context, v)
+  }
+
+  lazy val dxf_block: Parser[DxfBlock] = "dxf_block" !!! (
+    ((WS ~ ZERO ~ NL ~ BLOCK ~ NL)
+        ~> rep(group_code_and_dict))
         ~ rep(dxf_type_with_groups)
-        ~ (WS ~ ZERO ~ NL ~ ENDBLK ~ NL)
-        ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dict | not(AcDbBlockEnd) ~ value) ~ NL)
-        ~ (WS ~ "100" ~ NL ~ AcDbBlockEnd ~ NL)
-    )
-      ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
-    )
+        ~ ((WS ~ ZERO ~ NL ~ ENDBLK ~ NL)
+        ~> rep(group_code_and_dict))
+    ) ^^ {
+    case g ~ t ~ g2 => new DxfBlock(context, g, t, g2)
+  }
 
 
   /*The following is an example of the ENTITIES section of a DXF file:
