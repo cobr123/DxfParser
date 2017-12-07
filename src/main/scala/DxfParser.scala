@@ -329,7 +329,7 @@ class DxfParser extends DebugDxfParser {
       )
         ~ (WS ~ ZERO ~ NL ~ ENDBLK ~ NL)
         ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | not(AcDbBlockEnd) ~ value) ~ NL)
-        ~ (WS ~ "100" ~ NL ~ AcDbBlockEnd ~NL)
+        ~ (WS ~ "100" ~ NL ~ AcDbBlockEnd ~ NL)
     )
       ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
     )
@@ -419,6 +419,7 @@ class DxfParser extends DebugDxfParser {
           ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | value) ~ NL)
       )
     )
+      ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
     )
 
   lazy val object_type: Parser[Any] = "object_type" !!! not(keywords) ~"""[a-zA-Z0-9_]+""".r

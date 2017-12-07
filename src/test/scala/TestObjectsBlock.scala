@@ -117,6 +117,8 @@ class TestObjectsBlock extends TestUtil {
         | 40
         |6.35
         |  0
+        |ENDSEC
+        |  0
         |EOF
         |
         |  """
