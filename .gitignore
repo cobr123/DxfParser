@@ -1,2 +1,10 @@
 *.class
 *.log
+target/
+project/project/
+project/target/
+.idea/
+projectFilesBackup/
+out/
+bin/
+*.iml
