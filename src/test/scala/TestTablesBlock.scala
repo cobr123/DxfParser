@@ -55,7 +55,7 @@ class TestTablesBlock extends TestUtil {
         |  """
 
     val parser: DxfParser = new DxfParser()
-    parser.setPrintDebug(true)
+//    parser.setPrintDebug(true)
     testByRule(parser, parser.dxf_main, text.stripMargin)
   }
 }

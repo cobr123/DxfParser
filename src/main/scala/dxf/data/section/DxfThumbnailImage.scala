@@ -1,6 +1,8 @@
-package dxf.data
+package dxf.data.section
 
-final class DxfThumbnailImage(ctx: dxf.parser.Context, codeAndValue: List[DxfGroupCodeAndValue]) {
+import dxf.data.DxfGroupCodeAndValue
+
+final class DxfThumbnailImage(ctx: dxf.parser.Context, codeAndValue: List[DxfGroupCodeAndValue])extends DxfSection  {
   override def toString: String = {
     if (ctx.printToXml) {
       var res = "<SECTION name='THUMBNAILIMAGE'>" + "\n"

@@ -1,6 +1,7 @@
 package dxf.parser
 
 import dxf.data._
+import dxf.data.section.{DxfHeader, DxfTables, DxfThumbnailImage}
 
 import scala.util.parsing.combinator.{JavaTokenParsers, PackratParsers}
 
@@ -82,6 +83,8 @@ class DxfParser extends DebugDxfParser {
 
   lazy val ZERO: Parser[Any] = ignoreCase("0")
 
+  lazy val TWO: Parser[Any] = ignoreCase("2")
+
   lazy val SECTION: Parser[Any] = ignoreCase("SECTION")
 
   lazy val ENDSEC: Parser[Any] = ignoreCase("ENDSEC")
@@ -158,7 +161,7 @@ class DxfParser extends DebugDxfParser {
   End of HEADER section
   */
   lazy val header_block: Parser[DxfHeader] = "header_block" !!! (
-    ((WS ~ ZERO ~ NL ~ SECTION ~ NL) ~ (WS ~ "2" ~ NL ~ HEADER ~ NL))
+    ((WS ~ ZERO ~ NL ~ SECTION ~ NL) ~ (WS ~ TWO ~ NL ~ HEADER ~ NL))
       ~> rep(header_variable)
       <~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
     ) ^^ {
@@ -218,11 +221,11 @@ class DxfParser extends DebugDxfParser {
   */
   lazy val classes_block: Parser[Any] = "classes_block" !!! (
     (WS ~ ZERO ~ NL ~ SECTION ~ NL)
-      ~ (WS ~ "2" ~ NL ~ CLASSES ~ NL)
+      ~ (WS ~ TWO ~ NL ~ CLASSES ~ NL)
       ~ rep(
       (WS ~ ZERO ~ NL ~ CLASS ~ NL)
         ~ (WS ~ "1" ~ NL ~ class_dxf_record ~ NL)
-        ~ (WS ~ "2" ~ NL ~ class_name ~ NL)
+        ~ (WS ~ TWO ~ NL ~ class_name ~ NL)
         ~ (WS ~ "3" ~ NL ~ app_name ~ NL)
         ~ rep(WS ~ wholeNumber ~ NL ~ WS ~ wholeNumber ~ NL)
     )
@@ -275,33 +278,51 @@ class DxfParser extends DebugDxfParser {
   ENDSEC
   End of TABLES section
   */
-  lazy val tables_block: Parser[Any] = "tables_block" !!! (
-    (WS ~ ZERO ~ NL ~ SECTION ~ NL)
-      ~ (WS ~ "2" ~ NL ~ TABLES ~ NL)
-      ~ rep(
-      (WS ~ ZERO ~ NL ~ TABLE ~ NL)
-        ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | value) ~ NL)
-        ~ rep(
-        (WS ~ ZERO ~ NL ~ table_type ~ NL)
-          ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | value) ~ NL)
-      )
-        ~ (WS ~ ZERO ~ NL ~ ENDTAB ~ NL)
-    )
-      ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
-    )
+  lazy val tables_block: Parser[DxfTables] = "tables_block" !!! (
+    (WS ~ ZERO ~ NL ~ SECTION ~ NL
+      ~ WS ~ TWO ~ NL ~ TABLES ~ NL)
+      ~> rep(dxf_table)
+      <~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
+    ) ^^ {
+    case v => new DxfTables(context, v)
+  }
 
-  lazy val table_type: Parser[Any] = not(keywords) ~"""[a-zA-Z0-9_]+""".r
+  lazy val dxf_table: Parser[DxfTable] = "dxf_table" !!! (
+    ((WS ~ ZERO ~ NL ~ TABLE ~ NL)
+      ~> rep(group_code_and_dict))
+      ~ (rep(dxf_table_type)
+      <~ (WS ~ ZERO ~ NL ~ ENDTAB ~ NL))
+    ) ^^ {
+    case g ~ t => new DxfTable(context, g, t)
+  }
 
-  lazy val handle: Parser[Any] = not(keywords) ~"""[a-zA-Z0-9]+""".r
+  lazy val dxf_table_type: Parser[DxfTableType] = "dxf_table_type" !!! (
+    (WS ~> ZERO ~> NL ~> table_type <~ NL)
+      ~ rep(group_code_and_dict)
+    ) ^^ {
+    case n ~ g => new DxfTableType(context, n, g)
+  }
 
-  lazy val dic_name: Parser[Any] = not(keywords) ~"""[a-zA-Z0-9_]+""".r
+  lazy val group_code_and_dict: Parser[DxfGroupCodeAndDict] = "group_code_and_dict" !!! (
+    (WS ~> group_code <~ NL)
+      ~ (WS ~> opt(dict | dxf_value) <~ NL)
+    ) ^^ {
+    case n ~ v => new DxfGroupCodeAndDict(context, n, v)
+  }
 
-  lazy val dic: Parser[Any] = "dic" !!! (
-    "{" ~ dic_name ~ NL
-      ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(value) ~ NL)
-      ~ WS ~ group_code ~ NL
-      ~ "}"
-    )
+  lazy val table_type: Parser[String] = not(keywords) ~> """[a-zA-Z0-9_]+""".r
+
+  lazy val handle: Parser[String] = not(keywords) ~> """[a-zA-Z0-9]+""".r
+
+  lazy val dict_name: Parser[String] = not(keywords) ~> """[a-zA-Z0-9_]+""".r
+
+  lazy val dict: Parser[DxfDict] = "dict" !!! (
+    ("{" ~> dict_name <~ NL)
+      ~ rep(group_code_and_value)
+      ~ (WS ~> group_code <~ NL <~ "}")
+    ) ^^ {
+    case n ~ g ~ c => new DxfDict(context, n, g, c)
+  }
   /*The following is an example of the BLOCKS section of a DXF file:
     0
   SECTION
@@ -360,16 +381,16 @@ class DxfParser extends DebugDxfParser {
   * */
   lazy val blocks_block: Parser[Any] = "blocks_block" !!! (
     (WS ~ ZERO ~ NL ~ SECTION ~ NL)
-      ~ (WS ~ "2" ~ NL ~ BLOCKS ~ NL)
+      ~ (WS ~ TWO ~ NL ~ BLOCKS ~ NL)
       ~ rep(
       (WS ~ ZERO ~ NL ~ BLOCK ~ NL)
-        ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | value) ~ NL)
+        ~ rep(group_code_and_dict)
         ~ rep(
         (WS ~ ZERO ~ NL ~ entity_type ~ NL)
-          ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | value) ~ NL)
+          ~ rep(group_code_and_dict)
       )
         ~ (WS ~ ZERO ~ NL ~ ENDBLK ~ NL)
-        ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | not(AcDbBlockEnd) ~ value) ~ NL)
+        ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dict | not(AcDbBlockEnd) ~ value) ~ NL)
         ~ (WS ~ "100" ~ NL ~ AcDbBlockEnd ~ NL)
     )
       ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
@@ -407,10 +428,10 @@ class DxfParser extends DebugDxfParser {
   * */
   lazy val entities_block: Parser[Any] = "entities_block" !!! (
     (WS ~ ZERO ~ NL ~ SECTION ~ NL)
-      ~ (WS ~ "2" ~ NL ~ ENTITIES ~ NL)
+      ~ (WS ~ TWO ~ NL ~ ENTITIES ~ NL)
       ~ rep(
       (WS ~ ZERO ~ NL ~ entity_type ~ NL)
-        ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | value) ~ NL)
+        ~ rep(group_code_and_dict)
     )
       ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
     )
@@ -451,13 +472,13 @@ class DxfParser extends DebugDxfParser {
   * */
   lazy val objects_block: Parser[Any] = "objects_block" !!! (
     (WS ~ ZERO ~ NL ~ SECTION ~ NL)
-      ~ (WS ~ "2" ~ NL ~ OBJECTS ~ NL)
+      ~ (WS ~ TWO ~ NL ~ OBJECTS ~ NL)
       ~ rep(
       (WS ~ ZERO ~ NL ~ DICTIONARY ~ NL)
-        ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | value) ~ NL)
+        ~ rep(group_code_and_dict)
         ~ rep(
         (WS ~ ZERO ~ NL ~ object_type ~ NL)
-          ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dic | value) ~ NL)
+          ~ rep(group_code_and_dict)
       )
     )
       ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
@@ -466,8 +487,8 @@ class DxfParser extends DebugDxfParser {
   lazy val object_type: Parser[Any] = "object_type" !!! not(keywords) ~"""[a-zA-Z0-9_]+""".r
 
   lazy val thumbnailimage_block: Parser[Any] = "thumbnailimage_block" !!! (
-    ((WS ~ ZERO ~ NL ~ SECTION ~ NL)
-      ~ (WS ~ "2" ~ NL ~ THUMBNAILIMAGE ~ NL))
+    (WS ~ ZERO ~ NL ~ SECTION ~ NL
+      ~ WS ~ TWO ~ NL ~ THUMBNAILIMAGE ~ NL)
       ~> rep(group_code_and_value)
       <~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
     ) ^^ {
