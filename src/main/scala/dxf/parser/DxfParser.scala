@@ -1,7 +1,7 @@
 package dxf.parser
 
 import dxf.data._
-import dxf.data.section.{DxfEntities, DxfHeader, DxfTables, DxfThumbnailImage}
+import dxf.data.section._
 
 import scala.util.parsing.combinator.{JavaTokenParsers, PackratParsers}
 
@@ -385,10 +385,7 @@ class DxfParser extends DebugDxfParser {
       ~ rep(
       (WS ~ ZERO ~ NL ~ BLOCK ~ NL)
         ~ rep(group_code_and_dict)
-        ~ rep(
-        (WS ~ ZERO ~ NL ~ entity_type ~ NL)
-          ~ rep(group_code_and_dict)
-      )
+        ~ rep(dxf_type_with_groups)
         ~ (WS ~ ZERO ~ NL ~ ENDBLK ~ NL)
         ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(dict | not(AcDbBlockEnd) ~ value) ~ NL)
         ~ (WS ~ "100" ~ NL ~ AcDbBlockEnd ~ NL)
@@ -396,7 +393,6 @@ class DxfParser extends DebugDxfParser {
       ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
     )
 
-  lazy val entity_type: Parser[Any] = "entity_type" !!! not(keywords) ~"""[a-zA-Z0-9_]+""".r
 
   /*The following is an example of the ENTITIES section of a DXF file:
     0
@@ -426,7 +422,7 @@ class DxfParser extends DebugDxfParser {
   ENDSEC
   End of ENTITIES section
   * */
-  lazy val entities_block: Parser[Any] = "entities_block" !!! (
+  lazy val entities_block: Parser[DxfEntities] = "entities_block" !!! (
     (WS ~ ZERO ~ NL ~ SECTION ~ NL
       ~ WS ~ TWO ~ NL ~ ENTITIES ~ NL)
       ~> rep(dxf_type_with_groups)
@@ -469,21 +465,22 @@ class DxfParser extends DebugDxfParser {
   ENDSEC
   End of OBJECTS section
   * */
-  lazy val objects_block: Parser[Any] = "objects_block" !!! (
-    (WS ~ ZERO ~ NL ~ SECTION ~ NL)
-      ~ (WS ~ TWO ~ NL ~ OBJECTS ~ NL)
-      ~ rep(
-      (WS ~ ZERO ~ NL ~ DICTIONARY ~ NL)
-        ~ rep(group_code_and_dict)
-        ~ rep(
-        (WS ~ ZERO ~ NL ~ object_type ~ NL)
-          ~ rep(group_code_and_dict)
-      )
-    )
-      ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
-    )
+  lazy val objects_block: Parser[DxfObjects] = "objects_block" !!! (
+    (WS ~ ZERO ~ NL ~ SECTION ~ NL
+      ~ WS ~ TWO ~ NL ~ OBJECTS ~ NL)
+      ~> rep(object_dictionary)
+      <~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
+    ) ^^ {
+    case v => new DxfObjects(context, v)
+  }
 
-  lazy val object_type: Parser[Any] = "object_type" !!! not(keywords) ~"""[a-zA-Z0-9_]+""".r
+  lazy val object_dictionary: Parser[DxfObjectDictionary] = "object_dictionary" !!! (
+    ((WS ~ ZERO ~ NL ~ DICTIONARY ~ NL)
+      ~> rep(group_code_and_dict))
+      ~ rep(dxf_type_with_groups)
+    ) ^^ {
+    case g ~ t => new DxfObjectDictionary(context, g, t)
+  }
 
   lazy val thumbnailimage_block: Parser[Any] = "thumbnailimage_block" !!! (
     (WS ~ ZERO ~ NL ~ SECTION ~ NL
