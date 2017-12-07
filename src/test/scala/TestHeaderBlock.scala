@@ -1,3 +1,4 @@
+import dxf.parser.DxfParser
 
 class TestHeaderBlock extends TestUtil {
   test("section with header only") {
@@ -19,7 +20,7 @@ class TestHeaderBlock extends TestUtil {
         |  0
         |EOF
         |
-        |  """
+        |   """
 
     val parser: DxfParser = new DxfParser()
     //parser.setPrintDebug(true)

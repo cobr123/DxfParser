@@ -1,3 +1,4 @@
+import dxf.parser.DxfParser
 
 class TestClassesBlock extends TestUtil {
   test("section with classes only") {

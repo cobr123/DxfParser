@@ -1,3 +1,4 @@
+import dxf.parser.DxfParser
 
 class TestAllBlocks extends TestUtil {
   test("test all blocks") {

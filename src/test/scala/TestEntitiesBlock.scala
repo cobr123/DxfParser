@@ -1,3 +1,4 @@
+import dxf.parser.DxfParser
 
 class TestEntitiesBlock extends TestUtil {
   test("section with entities only") {

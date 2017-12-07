@@ -1,4 +1,6 @@
+package dxf.parser
 
+import dxf.data._
 
 import scala.util.parsing.combinator.{JavaTokenParsers, PackratParsers}
 
@@ -6,9 +8,13 @@ import scala.util.parsing.combinator.{JavaTokenParsers, PackratParsers}
   * Created by r.tabulov on 07.12.2017.
   */
 class DebugDxfParser extends JavaTokenParsers with PackratParsers {
+  val context = new Context()
   var print_debug = false
+  var last_error: Any = None
 
-  def setPrintDebug(printDebug: Boolean) = print_debug = printDebug
+  def setPrintDebug(printDebug: Boolean): Unit = print_debug = printDebug
+
+  def setPrintToXml(bpPrintToXml: Boolean): Unit = context.setPrintToXml(bpPrintToXml)
 
   final class Wrap[+T](name: String, parser: Parser[T]) extends Parser[T] {
     def log(msg: String): Unit = {
@@ -32,6 +38,7 @@ class DebugDxfParser extends JavaTokenParsers with PackratParsers {
         if (print_debug) {
           log(name + " failed")
         }
+        last_error = t
       }
       t
     }
@@ -51,7 +58,9 @@ class DebugDxfParser extends JavaTokenParsers with PackratParsers {
 class DxfParser extends DebugDxfParser {
   override def skipWhitespace = false
 
-  lazy val variable: Parser[Any] = "variable" !!! "$" ~ """[a-zA-Z0-9]+""".r
+  lazy val variable: Parser[String] = "variable" !!! "$" ~ """[a-zA-Z0-9]+""".r ^^ {
+    case v ~ n => v.toString + n.toString
+  }
 
   def ignoreCase(str: String): Parser[String] = ("""(?i)\Q""" + str + """\E\b""").r
 
@@ -63,9 +72,9 @@ class DxfParser extends DebugDxfParser {
       | ENDBLK
     )
 
-  lazy val group_code: Parser[Any] = "group_code" !!! not(keywords) ~ """\d+""".r //not(keywords) ~> wholeNumber
+  lazy val group_code: Parser[String] = "group_code" !!! not(keywords) ~> """\d+""".r //not(keywords) ~> wholeNumber
 
-  lazy val value: Parser[Any] = "value" !!! """[^{}\r\n]+""".r //"""[А-Яа-яA-Za-z0-9_\-+\.\\\*\h;:'/"=#№()]+""".r
+  lazy val value: Parser[String] = "value" !!! """[^{}\r\n]+""".r //"""[А-Яа-яA-Za-z0-9_\-+\.\\\*\h;:'/"=#№()]+""".r
 
   lazy val NL: Parser[Any] = """(\r?\n)""".r
 
@@ -110,12 +119,14 @@ class DxfParser extends DebugDxfParser {
   /*
   https://www.autodesk.com/techpubs/autocad/acad2000/dxf/ascii_dxf_files_dxf_aa.htm
   */
-  lazy val dxf_main: Parser[Any] = "dxf_main" !!! (
+  lazy val dxf_main: Parser[DxfSections] = "dxf_main" !!! (
     sections
-      ~ (WS ~ ZERO ~ NL ~ EOF ~ """\s*""".r)
-    )
+      <~ (WS ~ ZERO ~ NL ~ EOF ~ """\s*""".r)
+    ) ^^ {
+    case s => new DxfSections(context, s)
+  }
 
-  lazy val sections: Parser[Any] = "sections" !!! (
+  lazy val sections: Parser[List[Option[Any]]] = "sections" !!! (
     opt(header_block)
       ~ opt(classes_block)
       ~ opt(tables_block)
@@ -123,7 +134,9 @@ class DxfParser extends DebugDxfParser {
       ~ opt(entities_block)
       ~ opt(objects_block)
       ~ opt(thumbnailimage_block)
-    )
+    ) ^^ {
+    case h ~ c ~ t ~ b ~ e ~ o ~ th => List(h, c, t, b, e, o, th)
+  }
 
   /*Applications can retrieve the values of these variables with the AutoLISP getvar function.
 
@@ -144,12 +157,37 @@ class DxfParser extends DebugDxfParser {
   ENDSEC
   End of HEADER section
   */
-  lazy val header_block: Parser[Any] = "header_block" !!! (
-    (WS ~ ZERO ~ NL ~ SECTION ~ NL)
-      ~ (WS ~ "2" ~ NL ~ HEADER ~ NL)
-      ~ rep((WS ~ "9" ~ NL ~ variable ~ NL) ~ rep(WS ~ group_code ~ NL ~ WS ~ opt(("{" ~ value ~ "}") | value) ~ NL))
-      ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
-    )
+  lazy val header_block: Parser[DxfHeader] = "header_block" !!! (
+    ((WS ~ ZERO ~ NL ~ SECTION ~ NL) ~ (WS ~ "2" ~ NL ~ HEADER ~ NL))
+      ~> rep(header_variable)
+      <~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
+    ) ^^ {
+    case v => new DxfHeader(context, v)
+  }
+
+  lazy val header_variable: Parser[DxfHeaderVariable] = "header_variable" !!! (
+    (WS ~> "9" ~> NL ~> variable <~ NL)
+      ~ rep(group_code_and_value)
+    ) ^^ {
+    case n ~ v => new DxfHeaderVariable(context, n, v)
+  }
+
+  lazy val group_code_and_value: Parser[DxfGroupCodeAndValue] = "group_code_and_value" !!! (
+    (WS ~> group_code <~ NL)
+      ~ (WS ~> opt(dxf_value_in_cur | dxf_value) <~ NL)
+    ) ^^ {
+    case n ~ v => new DxfGroupCodeAndValue(context, n, v)
+  }
+
+  lazy val dxf_value: Parser[DxfValue] = "dxf_value" !!! value ^^ {
+    case v => new DxfValue(context, v)
+  }
+
+  lazy val dxf_value_in_cur: Parser[DxfValue] = "dxf_value_in_cur" !!! (
+    "{" ~> value <~ "}"
+    ) ^^ {
+    case v => new DxfValue(context, "{" + v + "}")
+  }
 
   /*The following is an example of the CLASSES section of a DXF file:
     0
