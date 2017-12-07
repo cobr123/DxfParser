@@ -219,18 +219,22 @@ class DxfParser extends DebugDxfParser {
   ENDSEC
   End of CLASSES section
   */
-  lazy val classes_block: Parser[Any] = "classes_block" !!! (
-    (WS ~ ZERO ~ NL ~ SECTION ~ NL)
-      ~ (WS ~ TWO ~ NL ~ CLASSES ~ NL)
-      ~ rep(
-      (WS ~ ZERO ~ NL ~ CLASS ~ NL)
-        ~ (WS ~ "1" ~ NL ~ class_dxf_record ~ NL)
-        ~ (WS ~ TWO ~ NL ~ class_name ~ NL)
-        ~ (WS ~ "3" ~ NL ~ app_name ~ NL)
-        ~ rep(WS ~ wholeNumber ~ NL ~ WS ~ wholeNumber ~ NL)
-    )
-      ~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
-    )
+  lazy val classes_block: Parser[DxfClasses] = "classes_block" !!! (
+    (WS ~ ZERO ~ NL ~ SECTION ~ NL
+      ~ WS ~ TWO ~ NL ~ CLASSES ~ NL)
+      ~> rep(dxf_class)
+      <~ (WS ~ ZERO ~ NL ~ ENDSEC ~ NL)
+    ) ^^ {
+    case v => new DxfClasses(context, v)
+  }
+
+  lazy val dxf_class: Parser[DxfClass] = "dxf_class" !!! (
+    ((WS ~ ZERO ~ NL ~ CLASS ~ NL)
+      ~> rep(group_code_and_dict))
+      ~ rep(dxf_type_with_groups)
+    ) ^^ {
+    case g ~ t => new DxfClass(context, g, t)
+  }
 
   lazy val class_dxf_record: Parser[Any] = not(keywords) ~"""[a-zA-Z0-9]+""".r
 
