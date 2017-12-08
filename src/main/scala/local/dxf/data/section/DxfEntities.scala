@@ -1,11 +1,12 @@
-package dxf.data.section
+package local.dxf.data.section
 
-import dxf.data.DxfTypeWithGroups
+import local.dxf.data.DxfTypeWithGroups
+import local.dxf.parser.Context
 
-final class DxfEntities(ctx: dxf.parser.Context, typeWithGroups: List[DxfTypeWithGroups]) extends DxfSection {
+final class DxfEntities(ctx: Context, typeWithGroups: List[DxfTypeWithGroups]) extends DxfSection {
   override def toString: String = {
     if (ctx.printToXml) {
-      var res = "<SECTION name='ENTITIES'>" + "\n"
+      var res = "<SECTION name='ENTITIES' line='" + pos.line + "'>" + "\n"
       res += "<TYPES>" + "\n"
       res += typeWithGroups.mkString
       res += "</TYPES>" + "\n"

@@ -1,4 +1,4 @@
-package dxf.parser
+package local.dxf.parser
 
 final class Context {
   var printToXml = false

@@ -1,4 +1,4 @@
-import dxf.parser.DxfParser
+import local.dxf.parser.DxfParser
 
 class TestThumbnailImageBlock extends TestUtil {
   test("section with thumbnailimage only") {

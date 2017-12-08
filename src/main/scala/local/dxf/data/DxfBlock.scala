@@ -1,6 +1,8 @@
-package dxf.data
+package local.dxf.data
 
-final class DxfBlock(ctx: dxf.parser.Context
+import local.dxf.parser.Context
+
+final class DxfBlock(ctx: Context
                      , codeAndDict: List[DxfGroupCodeAndDict]
                      , typeWithGroups: List[DxfTypeWithGroups]
                      , codeAndDictAfter: List[DxfGroupCodeAndDict]

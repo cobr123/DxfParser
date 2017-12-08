@@ -1,6 +1,8 @@
-package dxf.data
+package local.dxf.data
 
-final class DxfValue(ctx: dxf.parser.Context, value: String) {
+import local.dxf.parser.Context
+
+final class DxfValue(ctx: Context, value: String) {
   override def toString: String = {
     if (ctx.printToXml) {
       var res = "<VALUE>" + value + "</VALUE>" + "\n"

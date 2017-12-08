@@ -1,11 +1,12 @@
-package dxf.data.section
+package local.dxf.data.section
 
-import dxf.data.DxfHeaderVariable
+import local.dxf.data.DxfHeaderVariable
+import local.dxf.parser.Context
 
-final class DxfHeader(ctx: dxf.parser.Context, variables: List[DxfHeaderVariable]) extends DxfSection {
+final class DxfHeader(ctx: Context, variables: List[DxfHeaderVariable]) extends DxfSection {
   override def toString: String = {
     if (ctx.printToXml) {
-      var res = "<SECTION name='HEADER'>" + "\n"
+      var res = "<SECTION name='HEADER' line='" + pos.line + "'>" + "\n"
       res += "<VARIABLES>" + "\n"
       res += variables.mkString
       res += "</VARIABLES>" + "\n"

@@ -1,9 +1,13 @@
-package dxf.data
+package local.dxf.data
 
-final class DxfObjectDictionary(ctx: dxf.parser.Context, codeAndDict: List[DxfGroupCodeAndDict], typeWithGroups: List[DxfTypeWithGroups]) {
+import local.dxf.parser.Context
+
+import scala.util.parsing.input.Positional
+
+final class DxfObjectDictionary(ctx: Context, codeAndDict: List[DxfGroupCodeAndDict], typeWithGroups: List[DxfTypeWithGroups]) extends Positional {
   override def toString: String = {
     if (ctx.printToXml) {
-      var res = "<OBJECT>" + "\n"
+      var res = "<OBJECT  line='" + pos.line + "'>" + "\n"
       res += codeAndDict.mkString
       res += typeWithGroups.mkString
       res += "</OBJECT>" + "\n"

@@ -1,11 +1,12 @@
-package dxf.data.section
+package local.dxf.data.section
 
-import dxf.data.DxfGroupCodeAndValue
+import local.dxf.data.DxfGroupCodeAndValue
+import local.dxf.parser.Context
 
-final class DxfThumbnailImage(ctx: dxf.parser.Context, codeAndValue: List[DxfGroupCodeAndValue])extends DxfSection  {
+final class DxfThumbnailImage(ctx: Context, codeAndValue: List[DxfGroupCodeAndValue]) extends DxfSection {
   override def toString: String = {
     if (ctx.printToXml) {
-      var res = "<SECTION name='THUMBNAILIMAGE'>" + "\n"
+      var res = "<SECTION name='THUMBNAILIMAGE' line='" + pos.line + "'>" + "\n"
       res += "<GROUPS>" + "\n"
       res += codeAndValue.mkString
       res += "</GROUPS>" + "\n"

@@ -1,0 +1,1 @@
+call sbt clean && sbt assembly 2>&1 > log.txt

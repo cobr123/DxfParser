@@ -1,4 +1,4 @@
-import dxf.parser.DxfParser
+import local.dxf.parser.DxfParser
 import org.scalatest.concurrent.TimeLimitedTests
 import org.scalatest.time.{Seconds, Span}
 import org.scalatest.{Assertions, FunSuite}

@@ -1,10 +1,13 @@
-package dxf.data
+package local.dxf.data
 
+import local.dxf.parser.Context
 
-final class DxfTable(ctx: dxf.parser.Context, groups: List[DxfGroupCodeAndDict], types: List[DxfTypeWithGroups]) {
+import scala.util.parsing.input.Positional
+
+final class DxfTable(ctx: Context, groups: List[DxfGroupCodeAndDict], types: List[DxfTypeWithGroups]) extends Positional {
   override def toString: String = {
     if (ctx.printToXml) {
-      var res = "<TABLE>" + "\n"
+      var res = "<TABLE  line='" + pos.line + "'>" + "\n"
       res += "<GROUPS>" + "\n"
       res += groups.mkString
       res += "</GROUPS>" + "\n"

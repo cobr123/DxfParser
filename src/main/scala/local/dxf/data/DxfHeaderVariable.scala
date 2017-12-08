@@ -1,9 +1,13 @@
-package dxf.data
+package local.dxf.data
 
-final class DxfHeaderVariable(ctx: dxf.parser.Context, name: String, codeAndValue: List[DxfGroupCodeAndValue]) {
+import local.dxf.parser.Context
+
+import scala.util.parsing.input.Positional
+
+final class DxfHeaderVariable(ctx: Context, name: String, codeAndValue: List[DxfGroupCodeAndValue]) extends Positional {
   override def toString: String = {
     if (ctx.printToXml) {
-      var res = "<VARIABLE name='" + name + "'>" + "\n"
+      var res = "<VARIABLE name='" + name + "' line='" + pos.line + "'>" + "\n"
       res += "<GROUPS>" + "\n"
       res += codeAndValue.mkString
       res += "</GROUPS>" + "\n"

@@ -1,4 +1,4 @@
-import dxf.parser.DxfParser
+import local.dxf.parser.DxfParser
 
 class TestTablesBlock extends TestUtil {
   test("section with tables only") {

@@ -1,4 +1,4 @@
-import dxf.parser.DxfParser
+import local.dxf.parser.DxfParser
 
 class TestHeaderBlock extends TestUtil {
   test("section with header only") {

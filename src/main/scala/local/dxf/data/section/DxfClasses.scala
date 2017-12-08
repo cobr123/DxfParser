@@ -1,11 +1,12 @@
-package dxf.data.section
+package local.dxf.data.section
 
-import dxf.data.DxfClass
+import local.dxf.data.DxfClass
+import local.dxf.parser.Context
 
-final class DxfClasses(ctx: dxf.parser.Context, classes: List[DxfClass]) extends DxfSection {
+final class DxfClasses(ctx: Context, classes: List[DxfClass]) extends DxfSection {
   override def toString: String = {
     if (ctx.printToXml) {
-      var res = "<SECTION name='CLASSES'>" + "\n"
+      var res = "<SECTION name='CLASSES' line='" + pos.line + "'>" + "\n"
       res += "<CLASSES>" + "\n"
       res += classes.mkString
       res += "</CLASSES>" + "\n"

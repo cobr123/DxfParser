@@ -1,6 +1,8 @@
-package dxf.data
+package local.dxf.data
 
-final class DxfSections(ctx: dxf.parser.Context, sections: List[Option[Any]]) { //DxfSection
+import local.dxf.parser.Context
+
+final class DxfSections(ctx: Context, sections: List[Option[Any]]) { //DxfSection
   override def toString: String = {
     if (ctx.printToXml) {
       var res = "<SECTIONS>" + "\n"

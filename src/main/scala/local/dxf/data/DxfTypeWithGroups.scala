@@ -1,9 +1,13 @@
-package dxf.data
+package local.dxf.data
 
-final class DxfTypeWithGroups(ctx: dxf.parser.Context, name: String, codeAndDict: List[DxfGroupCodeAndDict]) {
+import local.dxf.parser.Context
+
+import scala.util.parsing.input.Positional
+
+final class DxfTypeWithGroups(ctx: Context, name: String, codeAndDict: List[DxfGroupCodeAndDict]) extends Positional {
   override def toString: String = {
     if (ctx.printToXml) {
-      var res = "<TYPE name='" + name + "'>" + "\n"
+      var res = "<TYPE name='" + name + "'  line='" + pos.line + "'>" + "\n"
       res += "<GROUPS>" + "\n"
       res += codeAndDict.mkString
       res += "</GROUPS>" + "\n"

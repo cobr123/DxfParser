@@ -1,6 +1,8 @@
-package dxf.data
+package local.dxf.data
 
-final class DxfClass(ctx: dxf.parser.Context, codeAndDict: List[DxfGroupCodeAndDict], typeWithGroups: List[DxfTypeWithGroups]) {
+import local.dxf.parser.Context
+
+final class DxfClass(ctx: Context, codeAndDict: List[DxfGroupCodeAndDict], typeWithGroups: List[DxfTypeWithGroups]) {
   override def toString: String = {
     if (ctx.printToXml) {
       var res = "<CLASS>" + "\n"

@@ -1,11 +1,12 @@
-package dxf.data.section
+package local.dxf.data.section
 
-import dxf.data.DxfTable
+import local.dxf.data.DxfTable
+import local.dxf.parser.Context
 
-final class DxfTables(ctx: dxf.parser.Context, tables: List[DxfTable])extends DxfSection  {
+final class DxfTables(ctx: Context, tables: List[DxfTable]) extends DxfSection {
   override def toString: String = {
     if (ctx.printToXml) {
-      var res = "<SECTION name='TABLES'>" + "\n"
+      var res = "<SECTION name='TABLES' line='" + pos.line + "'>" + "\n"
       res += "<TABLES>" + "\n"
       res += tables.mkString
       res += "</TABLES>" + "\n"

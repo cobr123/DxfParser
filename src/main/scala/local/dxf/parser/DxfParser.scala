@@ -1,8 +1,10 @@
-package dxf.parser
+package local.dxf.parser
 
-import dxf.data._
-import dxf.data.section._
+import local.dxf.data._
+import local.dxf.data.section._
 
+import scala.language.reflectiveCalls
+import scala.language.implicitConversions
 import scala.util.parsing.combinator.{JavaTokenParsers, PackratParsers}
 
 /**
@@ -79,7 +81,7 @@ class DxfParser extends DebugDxfParser {
 
   lazy val NL: Parser[Any] = """(\r?\n)""".r
 
-  lazy val WS: Parser[Any] = """\h*""".r
+  lazy val WS: Parser[Any] = """[ \t]*""".r
 
   lazy val ZERO: Parser[Any] = ignoreCase("0")
 
@@ -129,14 +131,14 @@ class DxfParser extends DebugDxfParser {
     case s => new DxfSections(context, s)
   }
 
-  lazy val sections: Parser[List[Option[Any]]] = "sections" !!! (
-    opt(header_block)
-      ~ opt(classes_block)
-      ~ opt(tables_block)
-      ~ opt(blocks_block)
-      ~ opt(entities_block)
-      ~ opt(objects_block)
-      ~ opt(thumbnailimage_block)
+  lazy val sections: Parser[List[Option[DxfSection]]] = "sections" !!! (
+    opt(positioned(header_block))
+      ~ opt(positioned(classes_block))
+      ~ opt(positioned(tables_block))
+      ~ opt(positioned(blocks_block))
+      ~ opt(positioned(entities_block))
+      ~ opt(positioned(objects_block))
+      ~ opt(positioned(thumbnailimage_block))
     ) ^^ {
     case h ~ c ~ t ~ b ~ e ~ o ~ th => List(h, c, t, b, e, o, th)
   }
@@ -168,14 +170,16 @@ class DxfParser extends DebugDxfParser {
     case v => new DxfHeader(context, v)
   }
 
-  lazy val header_variable: Parser[DxfHeaderVariable] = "header_variable" !!! (
+  lazy val header_variable: Parser[DxfHeaderVariable] = positioned(header_variable_positioned)
+  lazy val header_variable_positioned: Parser[DxfHeaderVariable] = "header_variable" !!! (
     (WS ~> "9" ~> NL ~> variable <~ NL)
       ~ rep(group_code_and_value)
     ) ^^ {
     case n ~ v => new DxfHeaderVariable(context, n, v)
   }
 
-  lazy val group_code_and_value: Parser[DxfGroupCodeAndValue] = "group_code_and_value" !!! (
+  lazy val group_code_and_value: Parser[DxfGroupCodeAndValue] = positioned(group_code_and_value_positioned)
+  lazy val group_code_and_value_positioned: Parser[DxfGroupCodeAndValue] = "group_code_and_value" !!! (
     (WS ~> group_code <~ NL)
       ~ (WS ~> opt(dxf_value_in_cur | dxf_value) <~ NL)
     ) ^^ {
@@ -291,7 +295,8 @@ class DxfParser extends DebugDxfParser {
     case v => new DxfTables(context, v)
   }
 
-  lazy val dxf_table: Parser[DxfTable] = "dxf_table" !!! (
+  lazy val dxf_table: Parser[DxfTable] = positioned(dxf_table_positioned)
+  lazy val dxf_table_positioned: Parser[DxfTable] = "dxf_table" !!! (
     ((WS ~ ZERO ~ NL ~ TABLE ~ NL)
       ~> rep(group_code_and_dict))
       ~ (rep(dxf_type_with_groups)
@@ -300,14 +305,16 @@ class DxfParser extends DebugDxfParser {
     case g ~ t => new DxfTable(context, g, t)
   }
 
-  lazy val dxf_type_with_groups: Parser[DxfTypeWithGroups] = "dxf_table_type" !!! (
+  lazy val dxf_type_with_groups: Parser[DxfTypeWithGroups] = positioned(dxf_type_with_groups_positioned)
+  lazy val dxf_type_with_groups_positioned: Parser[DxfTypeWithGroups] = "dxf_table_type" !!! (
     (WS ~> ZERO ~> NL ~> groups_type <~ NL)
       ~ rep(group_code_and_dict)
     ) ^^ {
     case n ~ g => new DxfTypeWithGroups(context, n, g)
   }
 
-  lazy val group_code_and_dict: Parser[DxfGroupCodeAndDict] = "group_code_and_dict" !!! (
+  lazy val group_code_and_dict: Parser[DxfGroupCodeAndDict] = positioned(group_code_and_dict_positioned)
+  lazy val group_code_and_dict_positioned: Parser[DxfGroupCodeAndDict] = "group_code_and_dict" !!! (
     (WS ~> group_code <~ NL)
       ~ (WS ~> opt(dict | dxf_value) <~ NL)
     ) ^^ {
@@ -320,7 +327,8 @@ class DxfParser extends DebugDxfParser {
 
   lazy val dict_name: Parser[String] = not(keywords) ~> """[a-zA-Z0-9_]+""".r
 
-  lazy val dict: Parser[DxfDict] = "dict" !!! (
+  lazy val dict: Parser[DxfDict] = positioned(dict_positioned)
+  lazy val dict_positioned: Parser[DxfDict] = "dict" !!! (
     ("{" ~> dict_name <~ NL)
       ~ rep(group_code_and_value)
       ~ (WS ~> group_code <~ NL <~ "}")
@@ -394,10 +402,10 @@ class DxfParser extends DebugDxfParser {
 
   lazy val dxf_block: Parser[DxfBlock] = "dxf_block" !!! (
     ((WS ~ ZERO ~ NL ~ BLOCK ~ NL)
-        ~> rep(group_code_and_dict))
-        ~ rep(dxf_type_with_groups)
-        ~ ((WS ~ ZERO ~ NL ~ ENDBLK ~ NL)
-        ~> rep(group_code_and_dict))
+      ~> rep(group_code_and_dict))
+      ~ rep(dxf_type_with_groups)
+      ~ ((WS ~ ZERO ~ NL ~ ENDBLK ~ NL)
+      ~> rep(group_code_and_dict))
     ) ^^ {
     case g ~ t ~ g2 => new DxfBlock(context, g, t, g2)
   }
@@ -483,7 +491,8 @@ class DxfParser extends DebugDxfParser {
     case v => new DxfObjects(context, v)
   }
 
-  lazy val object_dictionary: Parser[DxfObjectDictionary] = "object_dictionary" !!! (
+  lazy val object_dictionary: Parser[DxfObjectDictionary] = positioned(object_dictionary_positioned)
+  lazy val object_dictionary_positioned: Parser[DxfObjectDictionary] = "object_dictionary" !!! (
     ((WS ~ ZERO ~ NL ~ DICTIONARY ~ NL)
       ~> rep(group_code_and_dict))
       ~ rep(dxf_type_with_groups)
@@ -491,7 +500,7 @@ class DxfParser extends DebugDxfParser {
     case g ~ t => new DxfObjectDictionary(context, g, t)
   }
 
-  lazy val thumbnailimage_block: Parser[Any] = "thumbnailimage_block" !!! (
+  lazy val thumbnailimage_block: Parser[DxfThumbnailImage] = "thumbnailimage_block" !!! (
     (WS ~ ZERO ~ NL ~ SECTION ~ NL
       ~ WS ~ TWO ~ NL ~ THUMBNAILIMAGE ~ NL)
       ~> rep(group_code_and_value)
@@ -508,6 +517,13 @@ class DxfParser extends DebugDxfParser {
     }
   }
 
+  def convertToXml(text: String): Array[Any] = {
+    setPrintToXml(true)
+    parseAll(dxf_main, text) match {
+      case Success(lup, _) => Array(0, lup.toString)
+      case x => Array(-1, x.toString)
+    }
+  }
 }
 
 object TestDxfParser extends DxfParser with App {

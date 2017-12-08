@@ -1,4 +1,4 @@
-import dxf.parser.DxfParser
+import local.dxf.parser.DxfParser
 
 class TestObjectsBlock extends TestUtil {
   test("section with objects only") {
