@@ -1,7 +1,7 @@
 package local.dxf.cli;
 
-import org.apache.commons.io.FileUtils;
 import local.dxf.parser.DxfParser;
+import org.apache.commons.io.FileUtils;
 
 import java.io.File;
 import java.io.IOException;

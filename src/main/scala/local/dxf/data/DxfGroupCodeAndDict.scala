@@ -4,17 +4,17 @@ import local.dxf.parser.Context
 
 import scala.util.parsing.input.Positional
 
-final class DxfGroupCodeAndDict(ctx: Context, group_code: String, dictOrValue: Option[Any]) extends Positional{
-  override def toString: String = {
-    if (ctx.printToXml) {
-      var res = "<GROUP code='" + group_code + "' line='" + pos.line + "'>" + "\n"
-      res += dictOrValue.getOrElse("<VALUE/>" + "\n")
-      res += "</GROUP>" + "\n"
-      res
-    } else {
-      var res = group_code + "\n"
-      res += dictOrValue.getOrElse("\n")
-      res
-    }
+final class DxfGroupCodeAndDict(ctx: Context, group_code: String, dictOrValue: ToDxfXml) extends Positional {
+  def toDxf(sb: StringBuilder): Unit = {
+    sb.append(group_code).append("\n")
+    dictOrValue.toDxf(sb)
+    ()
+  }
+
+  def toXml(sb: StringBuilder): Unit = {
+    sb.append("<GROUP code='").append(group_code).append("' line='").append(pos.line).append("'>").append("\n")
+    dictOrValue.toXml(sb)
+    sb.append("</GROUP>").append("\n")
+    ()
   }
 }

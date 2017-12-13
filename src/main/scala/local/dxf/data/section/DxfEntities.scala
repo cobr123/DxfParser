@@ -4,19 +4,23 @@ import local.dxf.data.DxfTypeWithGroups
 import local.dxf.parser.Context
 
 final class DxfEntities(ctx: Context, typeWithGroups: List[DxfTypeWithGroups]) extends DxfSection {
-  override def toString: String = {
-    if (ctx.printToXml) {
-      var res = "<SECTION name='ENTITIES' line='" + pos.line + "'>" + "\n"
-      res += "<TYPES>" + "\n"
-      res += typeWithGroups.mkString
-      res += "</TYPES>" + "\n"
-      res += "</SECTION>" + "\n"
-      res
-    } else {
-      var res = "0\nSECTION\n2\nENTITIES\n"
-      res += typeWithGroups.mkString
-      res += "0\nENDSEC\n"
-      res
+  def toDxf(sb: StringBuilder): Unit = {
+    sb.append("0\nSECTION\n2\nENTITIES\n")
+    for (twg <- typeWithGroups) {
+      twg.toDxf(sb)
     }
+    sb.append("0\nENDSEC\n")
+    ()
+  }
+
+  def toXml(sb: StringBuilder): Unit = {
+    sb.append("<SECTION name='ENTITIES' code='2' line='").append(pos.line).append("'>").append("\n")
+    sb.append("<TYPES>").append("\n")
+    for (twg <- typeWithGroups) {
+      twg.toXml(sb)
+    }
+    sb.append("</TYPES>").append("\n")
+    sb.append("</SECTION>").append("\n")
+    ()
   }
 }

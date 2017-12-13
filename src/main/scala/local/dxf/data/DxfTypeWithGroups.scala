@@ -5,18 +5,22 @@ import local.dxf.parser.Context
 import scala.util.parsing.input.Positional
 
 final class DxfTypeWithGroups(ctx: Context, name: String, codeAndDict: List[DxfGroupCodeAndDict]) extends Positional {
-  override def toString: String = {
-    if (ctx.printToXml) {
-      var res = "<TYPE name='" + name + "'  line='" + pos.line + "'>" + "\n"
-      res += "<GROUPS>" + "\n"
-      res += codeAndDict.mkString
-      res += "</GROUPS>" + "\n"
-      res += "</TYPE>" + "\n"
-      res
-    } else {
-      var res = "0\n" + name + "\n"
-      res += codeAndDict.mkString
-      res
+  def toDxf(sb: StringBuilder): Unit = {
+    sb.append("0\n").append(name).append("\n")
+    for (cad <- codeAndDict) {
+      cad.toDxf(sb)
     }
+    ()
+  }
+
+  def toXml(sb: StringBuilder): Unit = {
+    sb.append("<TYPE code='0' name='").append(name).append("' line='").append(pos.line).append("'>").append("\n")
+    sb.append("<GROUPS>").append("\n")
+    for (cad <- codeAndDict) {
+      cad.toXml(sb)
+    }
+    sb.append("</GROUPS>").append("\n")
+    sb.append("</TYPE>").append("\n")
+    ()
   }
 }
